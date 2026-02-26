@@ -43,6 +43,18 @@ asdf global roc latest
 roc version
 ```
 
+You can also install the `nightly` version, which tracks the latest pre-release:
+
+```shell
+asdf install roc nightly
+```
+
+Since asdf caches installed versions, you need to uninstall and reinstall to get the latest nightly:
+
+```shell
+asdf uninstall roc nightly && asdf install roc nightly
+```
+
 Check [asdf](https://github.com/asdf-vm/asdf) readme for more instructions on how to
 install & manage versions.
 
