@@ -28,7 +28,7 @@ sort_versions() {
 list_github_tags() {
 	git ls-remote --tags --refs "$GH_REPO" |
 		grep -o 'refs/tags/.*' | cut -d/ -f3- |
-		grep -v -E '^(nightly|langsrv)'
+		grep -v -E '^langsrv'
 }
 
 list_all_versions() {
