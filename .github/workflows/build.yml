@@ -23,3 +23,29 @@ jobs:
           version: nightly
         env:
           GITHUB_API_TOKEN: ${{ github.token }}
+
+  readme_test:
+    name: readme test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install rundoc
+        run: pip install rundoc
+
+      - name: Setup asdf
+        uses: asdf-vm/actions/setup@v4
+
+      - name: Add plugin from local checkout
+        run: asdf plugin add roc ./
+
+      - name: Run README
+        run: rundoc run README.md -t "bash#ci" --single-session
+        env:
+          GITHUB_API_TOKEN: ${{ github.token }}

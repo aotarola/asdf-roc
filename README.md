@@ -29,7 +29,7 @@ asdf plugin add roc https://github.com/aotarola/asdf-roc.git
 
 roc:
 
-```shell
+```bash#ci
 # Show all installable versions
 asdf list-all roc
 
@@ -45,13 +45,13 @@ roc version
 
 You can also install the `nightly` version, which tracks the latest pre-release:
 
-```shell
+```bash#ci
 asdf install roc nightly
 ```
 
 Since asdf caches installed versions, you need to uninstall and reinstall to get the latest nightly:
 
-```shell
+```bash#ci
 asdf uninstall roc nightly && asdf install roc nightly
 ```
 
