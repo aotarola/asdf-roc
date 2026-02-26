@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-# TODO: Ensure this is the correct GitHub homepage where releases can be downloaded for roc.
 GH_REPO="https://github.com/roc-lang/roc"
+GH_API_REPO="https://api.github.com/repos/roc-lang/roc"
 TOOL_NAME="roc"
 TOOL_TEST="roc version"
 
@@ -14,9 +14,10 @@ fail() {
 
 curl_opts=(-fsSL)
 
-# NOTE: You might want to remove this if roc is not hosted on GitHub releases.
 if [ -n "${GITHUB_API_TOKEN:-}" ]; then
 	curl_opts=("${curl_opts[@]}" -H "Authorization: token $GITHUB_API_TOKEN")
+elif [ -n "${GITHUB_TOKEN:-}" ]; then
+	curl_opts=("${curl_opts[@]}" -H "Authorization: token $GITHUB_TOKEN")
 fi
 
 sort_versions() {
@@ -27,22 +28,53 @@ sort_versions() {
 list_github_tags() {
 	git ls-remote --tags --refs "$GH_REPO" |
 		grep -o 'refs/tags/.*' | cut -d/ -f3- |
-		sed 's/^v//' # NOTE: You might want to adapt this sed to remove non-version strings from tags
+		grep -v -E '^(nightly|langsrv)'
 }
 
 list_all_versions() {
-	# TODO: Adapt this. By default we simply list the tag names from GitHub releases.
-	# Change this function if roc has other means of determining installable versions.
 	list_github_tags
 }
 
+get_platform() {
+	local os arch
+	os="$(uname -s)"
+	arch="$(uname -m)"
+
+	case "${os}_${arch}" in
+	Linux_x86_64) echo "linux_x86_64" ;;
+	Linux_aarch64) echo "linux_arm64" ;;
+	Darwin_arm64) echo "macos_apple_silicon" ;;
+	Darwin_x86_64) echo "macos_x86_64" ;;
+	*) fail "Unsupported platform: ${os} ${arch}" ;;
+	esac
+}
+
+get_download_url() {
+	local tag="$1"
+	local platform="$2"
+
+	local release_url="${GH_API_REPO}/releases/tags/${tag}"
+	local asset_url
+	asset_url=$(curl "${curl_opts[@]}" "$release_url" |
+		grep -o '"browser_download_url": *"[^"]*"' |
+		grep "$platform" |
+		head -n 1 |
+		sed 's/"browser_download_url": *"//;s/"$//')
+
+	if [ -z "$asset_url" ]; then
+		fail "Could not find a release asset for platform '${platform}' in tag '${tag}'"
+	fi
+
+	echo "$asset_url"
+}
+
 download_release() {
-	local version filename url
+	local version filename url platform
 	version="$1"
 	filename="$2"
+	platform="$(get_platform)"
 
-	# TODO: Adapt the release URL convention for roc
-	url="$GH_REPO/archive/v${version}.tar.gz"
+	url="$(get_download_url "$version" "$platform")"
 
 	echo "* Downloading $TOOL_NAME release $version..."
 	curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
@@ -61,7 +93,6 @@ install_version() {
 		mkdir -p "$install_path"
 		cp -r "$ASDF_DOWNLOAD_PATH"/* "$install_path"
 
-		# TODO: Assert roc executable exists.
 		local tool_cmd
 		tool_cmd="$(echo "$TOOL_TEST" | cut -d' ' -f1)"
 		test -x "$install_path/$tool_cmd" || fail "Expected $install_path/$tool_cmd to be executable."
